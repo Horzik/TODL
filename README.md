@@ -69,7 +69,40 @@ You can see the full list with the "-l" flag:
 
 Nuff said
 
-### 4) -UNDO
+### 4) -KROSS
+
+You can cross any indexes you want using the same combination as in *remove*. <br>
+The flag for crossing is "-k" or "-d" (for "done"):
+
+> -k l <br> ^ crosses the Last index <br> <br> -k 1,3,7 <br> ^ crosses indexes 1, 3 and 7
+<br> <br> -k a <br>^ crosses everything
+
+Currently, the only way to "uncross" is to either undo your last action (if possible), or use "-kd":
+
+> -k d <br> ^this will clear all the past crossings
+
+### 5) -UNDO / -REDO
+
+You can *undo* your last action by using the "-u" flag:
+> -u
+
+Might add multiple undies soon
+
+You can also *redo* your last undo, by using "-ree" or "-m":
+
+> -ree <br>
+> -m
+
+### 6) -EXPORT
+
+The list gets automatically stored in the "data" folder as "tdl.txt". <br>
+You can save your current list anywhere, under a different name, with the flag "-x":
+
+> -x /home/rq137/Documents/bruuuh
+
+This will save your current list in the "Documents" directory under the name "bruuuh". <br>
+Alternatively you can save it as any other file format if you append it (idk like ".pron" or ".cia").
+
 
 _______________________
 
@@ -88,9 +121,7 @@ The reason is, you can remove any combination of indexes with just one "-r" flag
 2) The order of execution is: <br>
 - Remove <br>
 - Add <br>
-- List <br>
-- Undo (if you add and undo in one command, guess what happens)
-3) Redo function is WIP
+3) Not properly tested with other commands
 
 # Epilogue
 

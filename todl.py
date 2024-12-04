@@ -36,6 +36,29 @@ def log_action(action):
     with open(REVERZ_FP, "w") as a:
         json.dump(history, a, indent=4)
 
+    redo_stekk = []
+    with open(INVERT_FP, "w") as g:
+        json.dump(redo_stekk, g, indent=4)
+
+def export(name: str):
+    records = read()
+    if not records:
+        print("Bruh")
+        return
+
+    if os.path.exists(name):
+        confirmation = input(f"'{name}' already exists. Overwrite? (y/n): ")
+        if confirmation.lower() != "y":
+            print("Excaping")
+            return
+
+    try:
+        with open(name, "w") as a:
+            a.writelines(records)
+            print(f"Saving as {name}")
+    except Exception as e:
+            print(f"Oopsie: {e}")
+
 
 def add_todl(args: list[str]) -> None:
     records = read()
@@ -129,7 +152,7 @@ def list_records():
         print(f"{i + 1}) {r.rstrip("\n")}")
 
 
-def undo():
+def undo() -> None:
     with open(REVERZ_FP, "r") as f:
         history = json.load(f)
 
@@ -146,7 +169,7 @@ def undo():
             removed_task = records.pop(index - 1)
             print(f"Removed '{removed_task.strip()}' at position {index}")
         else:
-            print("Error Nibba, can't remove it")
+            print("Errore magoore, can't remove it")
             return
 
     if last_action["Action"] == "rem":
@@ -173,15 +196,87 @@ def undo():
                 print(f"Error: Invalid index {index} for reinsertion.")
                 return
 
+    if last_action["Action"] == "cleaner":
+
+        for index, task in zip(sorted(last_action["Index"]), last_action["Task"]):
+            index = index - 1
+            if 0 <= index <= len(records):
+                records.pop(index)
+                records.insert(index, task + "\n")
+            else:
+                print(f"Error: Invalid index {index} for reinsertion.")
+                return
+        print(f"You're beefing again")
+
     with open(REVERZ_FP, "w") as f:
         json.dump(history, f, indent=4)
 
     write(records)
+    klitoris = []
+
+    if os.path.exists(INVERT_FP):
+        with open(INVERT_FP, "r") as g:
+            klitoris = json.load(g)
+
+    klitoris.append(last_action)
+    klitoris = klitoris[-50:]
+
+    with open(INVERT_FP, "w") as g:
+        json.dump(klitoris, g, indent=4)
+
+
+def redo() -> None:
+    if os.path.exists(INVERT_FP):
+        with open(INVERT_FP, "r") as g:
+            redo_stack = json.load(g)
+
+        if not redo_stack:
+            print("No can do")
+            return
+
+        last_action = redo_stack.pop()
+        records = read()
+
+        with open(REVERZ_FP, "r") as g:
+            undo_stack = json.load(g)
+        undo_stack.append(last_action)
+
+        with open(REVERZ_FP, "w") as g:
+            json.dump(undo_stack, g, indent=4)
+
+        with open(INVERT_FP, "w") as g:
+            json.dump(redo_stack, g, indent=4)
+
+        if last_action["Action"] == "add":
+            index = last_action["Index"]
+            task = last_action["Task"]
+            records.insert(index - 1, task + "\n")
+            print(f"Re-added '{task}' at position {index}")
+
+        if last_action["Action"] == "rem":
+            removed_indexes = last_action["Index"]
+            for index in sorted(removed_indexes, reverse=True):
+                removed_task = records.pop(index - 1)
+                print(f"Removed '{removed_task.strip()}' at position {index}")
+
+        if last_action["Action"] == "doner":
+            for index, task in zip(sorted(last_action["Index"]), last_action["Task"]):
+                beef = ''.join([char + '\u0336' for char in task])
+                records[index -1] = beef + "\n"
+                print(f"You keep crossing these {last_action["Index"]} toyz")
+
+        if last_action["Action"] == "cleaner":
+            for index, task in zip(sorted(last_action["Index"]), last_action["Task"]):
+                cleaned_tasks = ''.join(char for char in task if unicodedata.category(char) != 'Mn')
+                records[index -1] = cleaned_tasks + "\n"
+            print("Peacemaker: Now you have no enemies")
+
+        write(records)
 
 
 def doner(val):
     records = read()
-    action = {"Action": "doner", "Task": "", "Index": 0}
+    action = {"Action": "", "Task": "", "Index": 0}
 
     if not records:
         print("U wot m8")
@@ -206,16 +301,25 @@ def doner(val):
                 print("SAVED")
                 return
             indexes = [i for i in range(len(records))]
-        elif val == "d":
-            indexes = [i for i in range(len(records))]
+
+        elif val == "d":                                # All this to clean
+            indexes = [i for i in range(len(records))]  # Yes I feel bad
+            cleaned_tasks = []
             for index in indexes:
                 if 0 <= index < len(records):
                     task = records[index].strip()
                     cleaned_task = ''.join(char for char in task if unicodedata.category(char) != 'Mn')
+                    cleaned_tasks.append(records[index].strip())
                     records[index] = cleaned_task + "\n"
             write(records)
             print(f"Made peace with the whole city")
+            indexes = [i + 1 for i in indexes]          # The only way to clean/resolve the beef
+            action["Task"] = cleaned_tasks              # Can't bother, if you cross a wrong fool
+            action["Index"] = indexes                   # you can just undo. Yes the logic is insane
+            action["Action"] = "cleaner"                # will rewrite it all anyway
+            log_action(action)
             return
+
         else:
             indexes = [int(val) - 1]
 
@@ -235,6 +339,7 @@ def doner(val):
 
         action["Task"] = crossed_tasks
         action["Index"] = crossed_indexes
+        action["Action"] = "doner"
         log_action(action)
 
     except ValueError:
@@ -291,6 +396,7 @@ Use 'a' to clear all listings'''
     p.add_argument(
         "--redo",
         "-ree",
+        "-m",
         action="store_true",
         help="WIP, nothing to see here"
     )
@@ -301,6 +407,15 @@ Use 'a' to clear all listings'''
         "-k",
         action="store",
         help="For krossing these fools"
+    )
+
+    p.add_argument(
+        "--export",
+        "-x",
+        "-s",
+        action="store",
+        dest="export",
+        help="Export these goodz"
     )
 
     return p
@@ -322,8 +437,14 @@ if __name__ == "__main__":
     if parsed_args.undo:
         undo()
 
+    if parsed_args.redo:
+        redo()
+
     if parsed_args.done:
         doner(parsed_args.done)
+
+    if parsed_args.export:
+        export(parsed_args.export)
 
 """
 1) del - check array bounds : CHECKERZ
@@ -333,8 +454,8 @@ if __name__ == "__main__":
 / dunno if that's sufficient
 4) clear with user y/n input : CHECKERZ
 5) insert on position : CHECKERZ except KILLMYSELF
-/ it works but not as *I want* ( -a42 )
-/ to insert on position type "-a "42 content"
+/ it works but not as *I want it to* ( -a42 )
+/ to insert on position type [-a "42 content]
 / LEAVE BRITTNEY ALONE
 6) zerver : NOPERZ
 7) PORNHUB ehhhhh I mean GITHUB : CHECKERZ
@@ -346,16 +467,19 @@ XTRAS
 9) help ain't printing right : CHECKERZ 
 / (formatter_class)
 10) ADD - if nic then print NOPERZ 
-/ prints arg help, why not the print inside the add function?
+/ prints "arg help" instead, why not the "print" inside the add function?
 / clueless
-11) UNDO - maybe CHECKERZ???
-12) doner kross mania CHECKERZ
+11) UNDO + REDO : CHECKERZ
+12) doner kross mania : CHECKERZ
 NOTES
 -- delete "reverse=True" otherwise RIP
     // ok but prints in reverse (duh)
     // reversing back again for printing is sus
 -- 3 != 3 aka 0 based
     // not very based
--- NOT changing documentation
--- redo soon???
+-- logic not logical but npnp
+--next I want:
+            "Swap"
+            Multiple Lists?
+            Peace on Earth
 """
