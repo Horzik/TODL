@@ -90,9 +90,9 @@ You can *undo* your last action by using the "-u" flag:
 
 Might add multiple undies soon
 
-You can also *redo* your last undo, by using "-ree" or "-m":
+You can also *redo* your last undo, by using "-re" or "-m":
 
-> -ree <br>
+> -re <br>
 > -m
 
 The maximum history for both undo and redo stacks is currently 5.
